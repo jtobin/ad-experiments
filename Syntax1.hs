@@ -22,6 +22,20 @@
 --
 -- >> embed tree 1
 -- (infinite loop)
+--
+-- Can observe sharing:
+--
+-- >> reifyGraph $ square (Var "x")
+-- let [(1, MulF 2 2), (2, VarF "x")] in 1
+--
+-- and ditto for AD'd version:
+--
+-- >> reifyGraph $ diff square (Var "x")
+-- let [(1,AddF 2 5),(5,MulF 4 3),(2,MulF 3 4),(4,LitF 1.0),(3,VarF "x")] in 1
+--
+-- Should be able to do CSE on that graph.  But I need a functor instance for
+-- Expr, which means that the language needs to be changed.
+--
 
 {-# OPTIONS_GHC -fno-warn-type-defaults #-}
 {-# LANGUAGE GADTs #-}
@@ -31,6 +45,8 @@ module Syntax1 where
 
 import Control.Applicative
 import Data.Reify
+import Data.Traversable
+import Numeric.AD
 
 data Expr where
   Lit :: Double -> Expr
@@ -38,7 +54,7 @@ data Expr where
   Sub :: Expr -> Expr -> Expr
   Mul :: Expr -> Expr -> Expr
   Var :: String -> Expr
-  deriving (Eq, Show)
+  deriving (Eq, Ord, Show)
 
 data ExprF e =
     LitF Double
@@ -46,7 +62,7 @@ data ExprF e =
   | SubF e e
   | MulF e e
   | VarF String
-  deriving (Eq, Show)
+  deriving (Eq, Ord, Show)
 
 instance MuRef Expr where
   type DeRef Expr        = ExprF
@@ -103,25 +119,29 @@ evalDual (Dual e0 e1) = (eval e0, eval e1)
 embed :: (Dual -> c) -> Expr -> c
 embed f = f . idD
 
-simpleInc :: Num a => a -> a
-simpleInc x = x + 1
-
-example :: Num a => a -> a
-example x = x ^ 2 + 2 * x + 1
+sumSquares :: Num a => [a] -> a
+sumSquares [x, y] = square x + square y
 
 square :: Num a => a -> a
 square x = x * x
 
-tree :: (Num a, Eq a) => a -> Expr
-tree 0 = Lit 1
+tree :: (Num a, Eq a) => a -> a
+tree 0 = 1
 tree n =
   let shared = tree (n - 1)
-  in  shared + shared
+  in  shared * shared
 
 main :: IO ()
 main = do
-  print $ simpleInc (Var "x")     -- observes body of non-looping function
-  print $ embed example (Var "x") -- observes body of non-looping AD'd function
-  -- reifyGraph (tree (Var "x"))  -- can't observe loop structure
-  -- print $ embed tree (Var "x") -- can't observe loop structure in AD'd f
+  print $ square (Var "x")        -- observes body of non-looping function
+  print $ embed square (Var "x")  -- observes body of non-looping AD'd function
+  print $ diff square (Var "x")   -- same for ad version
+  putStrLn ""
+  putStrLn "sharing in diff square"
+  g <- reifyGraph $ diff square (Var "x") -- can observe sharing in ad'd version
+  print g
+  putStrLn ""
+  putStrLn "sharing in grad sumSquares, by parameter"
+  gs <- traverse reifyGraph $ grad sumSquares [Var "x", Var "y"]
+  mapM_ print gs
 
