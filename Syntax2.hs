@@ -134,20 +134,53 @@ toIntMap (R.Graph xs u) = (u, IntMap.fromList xs)
 --   return $ 
 --     (\x -> (\(b, _, _) -> b) $ graphFromEdges (map ($ x) $ converted))
 
-example = do
-  gs <- traverse reifyGraph $ grad sumSquares [Var "x", Var "y"] 
-  let rgs  = map cse gs
-      test = toIntMap . head $ rgs
-  return $ test
+--example = do
+--  gs <- traverse reifyGraph $ grad sumSquares [Var "x", Var "y"] 
+--  let rgs  = map cse gs
+--      test = toIntMap . head $ rgs
+--  return $ test
+--
+--convert (k, v) = \x -> case v of
+--  AddF l r -> ((+), k, [l, r])
+--  SubF l r -> ((-), k, [l, r])
+--  MulF l r -> ((*), k, [l, r])
+--  LitF d   -> (\_ _ -> d, k, [])
+--  VarF _   -> (\_ _ -> x, k, [])
+--
+--evalGraphUp x (top, g) = go 0 g where
+--  go acc _ IntMap.empty = return acc
+--  go acc node feed = do
+--    ((k, v), next) <- IntMap.maxViewWithKey feed
+--    soFar <- case v of
+--               LitF d   -> d
+--               VarF _   -> x
+--               AddF l r -> evalGraphDown x l next + evalGraphDown x r next
+--               SubF l r -> evalGraphDown x l next - evalGraphDown x r next
+--               MulF l r -> evalGraphDown x l next * evalGraphDown x r next
+--    go soFar (node - 1)
+--
+--evalGraphDown x from g = go 0 where
+--  go acc k = do
+--    v <- IntMap.lookup k g
+--    result <- case v of
+--      AddF l r -> evalGraphDown x l g + evalGraphDown x r g
+--      SubF l r -> evalGraphDown x l g - evalGraphDown x r g
+--      MulF l r -> evalGraphDown x l g * evalGraphDown x r g
+--      VarF _   -> x
+--      LitF d   -> d
+--    return result
+      
 
-convert (k, v) = \x -> case v of
-  AddF l r -> ((+), k, [l, r])
-  SubF l r -> ((-), k, [l, r])
-  MulF l r -> ((*), k, [l, r])
-  LitF d   -> (\_ _ -> d, k, [])
-  VarF _   -> (\_ _ -> x, k, [])
 
-evalGraph = undefined
+
+-- evalGraph (top, g) = go 0 g where
+--   go acc _ IntMap.empty = return acc
+--   go acc node feed = do
+--     ((k, v), next) <- IntMap.maxViewWithKey feed
+--     let soFar = case v of
+--                   LitF d   -> d
+--                   AddF l r -> 
+  
 
 -- alternatively; let x = max in 
 
