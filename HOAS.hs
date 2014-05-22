@@ -14,6 +14,9 @@ data Expr =
   | Mul Expr Expr
   | Let Expr (Expr -> Expr)
 
+let_ :: Expr -> (Expr -> Expr) -> Expr
+let_ e0 e1 = Let e0 (\x -> e1 x)
+
 instance Num Expr where
   fromInteger = Lit . fromInteger
   e0 + e1     = Add e0 e1
@@ -44,15 +47,15 @@ eval (Let e0 e1) = let shared = Lit (eval e0)
 -- problem here in expressions with let statements; e1 :: Expr -> Expr but
 -- v is String.  need an interpreter to quote that back into the language.
 -- PHOAS takes care of this automatically.
-text :: Expr -> String
-text e = go e 0 where
-  go (Lit j)     _ = show j
-  go (Add e0 e1) c = "(" ++ go e0 c ++ " + " ++ go e1 c ++ ")"
-  go (Sub e0 e1) c = "(" ++ go e0 c ++ " - " ++ go e1 c ++ ")"
-  go (Mul e0 e1) c = "(" ++ go e0 c ++ " * " ++ go e1 c ++ ")"
-  go (Let e0 e1) c = "(let " ++ v ++ " = " ++ go e0 (c + 1) ++
-                     " in " ++ go (e1 v) (c + 1) ++ ")"
-    where v = "v" ++ show c
+-- text :: Expr -> String
+-- text e = go e 0 where
+--   go (Lit j)     _ = show j
+--   go (Add e0 e1) c = "(" ++ go e0 c ++ " + " ++ go e1 c ++ ")"
+--   go (Sub e0 e1) c = "(" ++ go e0 c ++ " - " ++ go e1 c ++ ")"
+--   go (Mul e0 e1) c = "(" ++ go e0 c ++ " * " ++ go e1 c ++ ")"
+--   go (Let e0 e1) c = "(let " ++ v ++ " = " ++ go e0 (c + 1) ++
+--                      " in " ++ go (e1 v) (c + 1) ++ ")"
+--     where v = "v" ++ show c
 
 tree :: (Num a, Eq a) => a -> Expr
 tree 0 = 1
@@ -61,4 +64,5 @@ tree n = Let (tree (n - 1)) (\shared -> shared + shared)
 autoTree :: (Num b, Eq b, Mode t, Scalar t ~ Expr) => b -> t
 autoTree 0 = auto 1
 autoTree n = auto $ Let (tree (n - 1)) (\shared -> shared + shared)
+
 
