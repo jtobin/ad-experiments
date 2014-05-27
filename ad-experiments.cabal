@@ -11,8 +11,10 @@ library
   exposed-modules:     Basic, HOAS, PHOAS, Utils
   build-depends:       base >=4.7 && <4.8
                      , containers
+                     , data-fix
                      , data-reify
                      , data-reify-cse
                      , ad
                      , simple-reflect
+                     , uniplate
   default-language:    Haskell2010

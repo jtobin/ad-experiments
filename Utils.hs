@@ -5,12 +5,14 @@ module Utils (
   , module Control.Applicative
   , module Data.Reify
   , module Data.Reify.Graph.CSE
+  , module Data.Foldable
   , module Data.Traversable
   , module Numeric.AD.Mode
   , module Numeric.AD.Mode.Kahn
   ) where
 
 import Control.Applicative
+import Data.Foldable
 import Data.Reify
 import Data.Reify.Graph.CSE
 import Data.Traversable
