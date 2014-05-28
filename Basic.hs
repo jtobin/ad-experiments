@@ -71,6 +71,12 @@ tree n =
   let shared = tree (n - 1)
   in  shared + shared
 
+autoTree :: (Num b, Eq b, Mode t, Scalar t ~ Expr) => b -> t
+autoTree 0 = auto 1
+autoTree n = 
+  let shared = tree (n - 1)
+  in  auto $ shared + shared
+
 -- | Cast an expression to a function.  Assumes one free variable, which must
 --   be passed in string form as an argument.
 toFunction :: Expr -> String -> (Int -> Int)
@@ -80,6 +86,8 @@ toFunction e x = \l -> eval (capture e x l) []
 --   replacement values must be held in the environment passed as an argument.
 toFunctionWithEnv :: Expr -> ([(String, Int)] -> Int)
 toFunctionWithEnv e = \ls -> eval (captureWithEnv e ls) ls 
+
+toDifferentiable e x = \l -> eval (capture e x l) []
 
 -- | Capture the body of a function, replacing the named free variable with the
 --   provided value.
@@ -95,21 +103,13 @@ captureWithEnv e ls = transform replaceVar e where
   replaceVar (Var y) = Lit . fromJust . lookup y $ ls
   replaceVar y = y
 
-
--- | Simple test expression.
---
---   > g@(Graph env r) <- reifyGraph $ capture test "x" 1
---   > cse g
-test :: Expr
-test = Var "x" ^ 10
-
 -- | Evaluate a graph that is assumed to include no free variables.
 evalGraph :: Graph ExprF -> Int
-evalGraph (Graph env r) = go env r where
-  go g j = case lookup j g of
-    Just (MulF a b) -> (go env a) * (go env b)
-    Just (AddF a b) -> (go env a) + (go env b)
-    Just (SubF a b) -> (go env a) - (go env b)
+evalGraph (Graph env r) = go r where
+  go j = case lookup j env of
+    Just (MulF a b) -> go a * go b
+    Just (AddF a b) -> go a + go b
+    Just (SubF a b) -> go a - go b
     Just (VarF _)   -> error "evalGraph: contains free variable"
     Just (LitF d)   -> d
     Nothing         -> 0
@@ -117,14 +117,26 @@ evalGraph (Graph env r) = go env r where
 -- | Evaluate a graph by passing an environment containing values for free
 --   variables.
 evalGraphWithEnv :: Graph ExprF -> [(String, Int)] -> Int
-evalGraphWithEnv (Graph env r) e = go env r where
-  go g j = case lookup j g of
-    Just (MulF a b) -> (go env a) * (go env b)
-    Just (AddF a b) -> (go env a) + (go env b)
-    Just (SubF a b) -> (go env a) - (go env b)
+evalGraphWithEnv (Graph env r) e = go r where
+  go j = case lookup j env of
+    Just (MulF a b) -> go a * go b
+    Just (AddF a b) -> go a + go b
+    Just (SubF a b) -> go a - go b
     Just (VarF v)   -> fromJust $ lookup v e
     Just (LitF d)   -> d
     Nothing         -> 0
+
+
+test :: Expr
+test = Var "x" ^ 10
+
+testo :: Int -> Expr
+testo = capture test "x"
+
+-- manipulate e = transform replaceVar e where
+--   replaceVar (Var y) = Lit . fromJust . lookup y $ ls
+--   replaceVar y = y
+
 
 main :: IO ()
 main = do
