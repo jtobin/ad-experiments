@@ -2,6 +2,8 @@
 module Utils (
     square
   , sumSquares
+  , vgrad
+  , vgrad'
   , module Control.Applicative
   , module Data.Data
   , module Data.Generics.Uniplate.Data
@@ -22,6 +24,7 @@ import Data.Maybe
 import Data.Reify
 import Data.Reify.Graph.CSE
 import Data.Traversable
+import Numeric.AD (vgrad, vgrad')
 import Numeric.AD.Mode
 import Numeric.AD.Mode.Kahn
 

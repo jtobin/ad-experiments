@@ -9,6 +9,7 @@
 
 module Basic where
 
+import qualified Data.Map as Map
 import Utils
 import System.IO.Unsafe
 
@@ -87,8 +88,6 @@ toFunction e x = \l -> eval (capture e x l) []
 toFunctionWithEnv :: Expr -> ([(String, Int)] -> Int)
 toFunctionWithEnv e = \ls -> eval (captureWithEnv e ls) ls 
 
-toDifferentiable e x = \l -> eval (capture e x l) []
-
 -- | Capture the body of a function, replacing the named free variable with the
 --   provided value.
 capture :: Expr -> String -> Int -> Expr
@@ -125,6 +124,30 @@ evalGraphWithEnv (Graph env r) e = go r where
     Just (VarF v)   -> fromJust $ lookup v e
     Just (LitF d)   -> d
     Nothing         -> 0
+
+-- | Evaluate a graph by passing an environment containing values for free
+--   variables.
+-- adEvalGraphWithEnv :: Graph ExprF -> [(String, Int)] -> Int
+adEvalGraphWithEnv (Graph env r) e = go r where
+  go j = case lookup j env of
+    Just (MulF a b) -> go a * go b
+    Just (AddF a b) -> go a + go b
+    Just (SubF a b) -> go a - go b
+    Just (VarF v)   -> fromJust $ Map.lookup v e
+    Just (LitF d)   -> auto $ fromIntegral d
+    Nothing         -> auto 0
+
+-- | Evaluate a graph by passing an environment containing values for free
+--   variables.
+-- adEvalGraphWithEnv :: Graph ExprF -> [(String, Int)] -> Int
+-- adGraphToSource (Graph env r) e = go r where
+--   go j = case lookup j env of
+--     Just (MulF a b) -> Mul (go a) (go b)
+--     Just (AddF a b) -> Add (go a) (go b)
+--     Just (SubF a b) -> Sub (go a - go b
+--     Just (VarF v)   -> fromJust $ Map.lookup v e
+--     Just (LitF d)   -> auto $ fromIntegral d
+--     Nothing         -> auto 0
 
 
 test :: Expr
