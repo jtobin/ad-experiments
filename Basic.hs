@@ -9,7 +9,6 @@
 
 module Basic where
 
-import qualified Data.Map as Map
 import Utils
 import System.IO.Unsafe
 
@@ -62,9 +61,6 @@ eval (Var v) env     = fromJust $ lookup v env
 --
 --   > eval (tree 30) []
 --   -- don't wait up
---
---   NOTE: can't reify this function using this language.  need something that
---         can observe the loop structure.
 --
 tree :: (Num a, Eq a, Num b) => a -> b
 tree 0 = 1
@@ -125,41 +121,11 @@ evalGraphWithEnv (Graph env r) e = go r where
     Just (LitF d)   -> d
     Nothing         -> 0
 
--- | Evaluate a graph by passing an environment containing values for free
---   variables.
--- adEvalGraphWithEnv :: Graph ExprF -> [(String, Int)] -> Int
-adEvalGraphWithEnv (Graph env r) e = go r where
-  go j = case lookup j env of
-    Just (MulF a b) -> go a * go b
-    Just (AddF a b) -> go a + go b
-    Just (SubF a b) -> go a - go b
-    Just (VarF v)   -> fromJust $ Map.lookup v e
-    Just (LitF d)   -> auto $ fromIntegral d
-    Nothing         -> auto 0
-
--- | Evaluate a graph by passing an environment containing values for free
---   variables.
--- adEvalGraphWithEnv :: Graph ExprF -> [(String, Int)] -> Int
--- adGraphToSource (Graph env r) e = go r where
---   go j = case lookup j env of
---     Just (MulF a b) -> Mul (go a) (go b)
---     Just (AddF a b) -> Add (go a) (go b)
---     Just (SubF a b) -> Sub (go a - go b
---     Just (VarF v)   -> fromJust $ Map.lookup v e
---     Just (LitF d)   -> auto $ fromIntegral d
---     Nothing         -> auto 0
-
-
 test :: Expr
 test = Var "x" ^ 10
 
 testo :: Int -> Expr
 testo = capture test "x"
-
--- manipulate e = transform replaceVar e where
---   replaceVar (Var y) = Lit . fromJust . lookup y $ ls
---   replaceVar y = y
-
 
 main :: IO ()
 main = do
