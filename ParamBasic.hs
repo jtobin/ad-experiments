@@ -1,5 +1,6 @@
 {-# OPTIONS_GHC -fno-warn-missing-methods #-}
 {-# LANGUAGE DeriveFunctor #-}
+{-# LANGUAGE FlexibleContexts #-}
 {-# LANGUAGE TypeFamilies #-}
 
 module ParamBasic where
@@ -53,11 +54,28 @@ autoEval x e0 = (`ec` e0) where
   ec v (Sub e1 e2) = ec v e1 - ec v e2
   ec v (Mul e1 e2) = ec v e1 * ec v e2
 
+-- an optimized derivative?  or just completely circular?
+--
+-- what i probably want is the reified AST corresponding to this function 
+diff_
+  :: (Mode c, MuRef a, Ord (Scalar c), Num a, DeRef a ~ ExprF (Scalar c))
+  => Expr a -> String -> a -> c
+diff_ expr x = evalGraph . cse . toGraphDerivative expr x
+
 toGraphDerivative
   :: (MuRef s, Num s)
   => Expr s -> String -> s -> Reify.Graph (DeRef s)
-toGraphDerivative expr x v =
-  unsafePerformIO . reifyGraph $ diff (autoEval x expr) v
+toGraphDerivative e x v =
+  unsafePerformIO . reifyGraph $ diff (autoEval x e) v
+
+evalGraph g = consume $ toGraph g where
+  toGraph (Reify.Graph env _) = graphFromEdges . map toNode $ env
+  toNode (j, AddF a b) = (AddF a b, j, [a, b])
+  toNode (j, SubF a b) = (SubF a b, j, [a, b])
+  toNode (j, MulF a b) = (MulF a b, j, [a, b])
+  toNode (j, LitF d)   = (LitF d, j, [])
+  toNode (_, VarF _)   = error "kaboom!"
+
 
 -- graphEval :: Num a => Expr a -> a
 graphEval expr = consume reified where
@@ -96,7 +114,7 @@ evalNode (MulF a b, k, _) l =
 
 -- so, our expression:
 test :: Num a => Expr a
-test = Var "x" ^ 100
+test = Var "x" ^ 2
 
 -- examples:
 -- toGraphDerivative test "x" (Lit 10)
